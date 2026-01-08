@@ -1,0 +1,12 @@
+.venv/
+__pycache__/
+backend/data/recipes.json
+.venv/
+__pycache__/
+backend/data/recipes.json
+
+# Local data (do not commit)
+backend/data/favorites_cli.json
+backend/inventory.json
+backend/data/*.json
+backend/data/*.jsonl
