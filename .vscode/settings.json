@@ -1,0 +1,20 @@
+{
+    "sqltools.connections": [
+        {
+            "mysqlOptions": {
+                "authProtocol": "xprotocol",
+                "enableSsl": "Disabled"
+            },
+            "ssh": "Disabled",
+            "previewLimit": 50,
+            "server": "localhost",
+            "port": 33060,
+            "driver": "MySQL",
+            "name": "Inventory",
+            "database": "inventory",
+            "username": "Hahme7",
+            "password": "Lacordaham1020",
+            "connectionTimeout": 30
+        }
+    ]
+}
