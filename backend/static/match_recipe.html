@@ -1,0 +1,229 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Matched Recipes</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      background-color: #f8f9fa;
+      margin: 0;
+      padding: 20px;
+    }
+    .container {
+      max-width: 1200px;
+      margin: auto;
+    }
+    .search-bar {
+      display: flex;
+      gap: 10px;
+      margin-bottom: 20px;
+    }
+    input {
+      flex: 1;
+      padding: 10px;
+      border-radius: 6px;
+      border: 1px solid #ccc;
+      font-size: 16px;
+    }
+    button {
+      padding: 10px 16px;
+      border: none;
+      border-radius: 6px;
+      background-color: #007bff;
+      color: #fff;
+      cursor: pointer;
+      font-size: 16px;
+    }
+    button:hover {
+      background-color: #0056b3;
+    }
+    .grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+      gap: 20px;
+    }
+    .card {
+      background: #fff;
+      border-radius: 12px;
+      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+      overflow: hidden;
+      transition: transform 0.2s ease;
+    }
+    .card:hover {
+      transform: translateY(-4px);
+    }
+    .card img {
+      width: 100%;
+      height: 160px;
+      object-fit: cover;
+    }
+    .card-content {
+      padding: 15px;
+    }
+    .card-title {
+      font-weight: bold;
+      margin-bottom: 10px;
+    }
+    .view-btn {
+      background: #6c757d;
+      width: 100%;
+      padding: 8px;
+      margin-top: 10px;
+      border-radius: 6px;
+      color: white;
+      cursor: pointer;
+      border: none;
+    }
+    .view-btn:hover {
+      background: #565e64;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <nav style="margin-bottom:20px;">
+      <a href="/">Home</a>
+      <a href="/static/match_recipe.html">Matched Recipes</a>
+    </nav>
+
+    <h1>Matched Recipes</h1>
+
+    <div class="search-bar">
+      <input id="searchInput" type="text" placeholder="Search recipes..." />
+      <button onclick="fetchRecipes()">Search</button>
+    </div>
+
+    <p id="loadingMsg" style="display:none;">Loading recipes...</p>
+    <p id="errorMsg" style="color:red;"></p>
+
+    <div class="grid" id="recipeGrid"></div>
+  </div>
+
+  <script>
+    async function fetchRecipes() {
+      const query = (document.getElementById("searchInput").value || "").trim();
+  
+      document.getElementById("loadingMsg").style.display = "block";
+      document.getElementById("errorMsg").textContent = "";
+  
+      try {
+        const res = await fetch(`/api/inventory/recipes?search=${encodeURIComponent(query)}`);
+        if (!res.ok) throw new Error("Failed to load recipes");
+        const data = await res.json();
+  
+        displayRecipes(data.recipes || []);
+      } catch (err) {
+        document.getElementById("errorMsg").textContent = err.message;
+      } finally {
+        document.getElementById("loadingMsg").style.display = "none";
+      }
+    }
+  </script>
+  
+
+  <script>
+    function displayRecipes(recipes) {
+      const grid = document.getElementById("recipeGrid");
+      grid.innerHTML = "";
+      recipes.forEach((recipe) => {
+        const card = document.createElement("div");
+        card.className = "card";
+  
+        const img = document.createElement("img");
+        img.src = recipe.image || "";
+        img.alt = recipe.title || "Recipe";
+  
+        const cardContent = document.createElement("div");
+        cardContent.className = "card-content";
+  
+        const title = document.createElement("div");
+        title.className = "card-title";
+        title.textContent = recipe.title || "(untitled)";
+  
+        const cookableInfo = document.createElement("p");
+        const missing = Array.isArray(recipe.missing) ? recipe.missing : [];
+        if (missing.length > 0) {
+          cookableInfo.textContent = `Missing: ${missing.join(", ")}`;
+        } else {
+          cookableInfo.textContent = "Fully Cookable!";
+          cookableInfo.style.color = "green";
+        }
+  
+        const viewBtn = document.createElement("button");
+        viewBtn.className = "view-btn";
+        viewBtn.textContent = "View Recipe";
+  
+        const favBtn = document.createElement("button");
+        favBtn.style.width = "100%";
+        favBtn.style.marginTop = "8px";
+        favBtn.textContent = "Save ⭐";
+  
+        const details = document.createElement("div");
+        details.style.display = "none";
+        details.style.marginTop = "10px";
+  
+        if (Array.isArray(recipe.ingredients) && recipe.ingredients.length > 0) {
+          const ul = document.createElement("ul");
+          recipe.ingredients.forEach((i) => {
+            const li = document.createElement("li");
+            const measure = (i.measure || "").trim();
+            const name = (i.name || "").trim();
+            li.textContent = measure ? `${measure} ${name}` : name;
+            ul.appendChild(li);
+          });
+          details.appendChild(ul);
+        }
+  
+        if (recipe.instructions) {
+          const p = document.createElement("p");
+          p.textContent = recipe.instructions;
+          details.appendChild(p);
+        }
+  
+        viewBtn.addEventListener("click", () => {
+          const open = details.style.display === "block";
+          details.style.display = open ? "none" : "block";
+          viewBtn.textContent = open ? "View Recipe" : "Hide Recipe";
+        });
+  
+        favBtn.addEventListener("click", async () => {
+  if (favBtn.textContent === "Saved ⭐") {
+    console.log("Unsaving recipe:", recipe.title);
+    const res = await fetch("/api/favorites", {
+      method: "DELETE",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ title: recipe.title })
+    });
+    if (res.ok) {
+      favBtn.textContent = "Save ⭐";
+    }
+  } else {
+    const res = await fetch("/api/favorites", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(recipe),
+    });
+    if (res.ok) {
+      favBtn.textContent = "Saved ⭐";
+    }
+  }
+});
+  
+        cardContent.appendChild(title);
+        cardContent.appendChild(cookableInfo);
+        cardContent.appendChild(viewBtn);
+        cardContent.appendChild(favBtn);
+        cardContent.appendChild(details);
+  
+        card.appendChild(img);
+        card.appendChild(cardContent);
+        grid.appendChild(card);
+      });
+    }
+  </script>
+
+  
+</body>
+</html>
